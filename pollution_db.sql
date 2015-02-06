@@ -1,0 +1,22 @@
+CREATE TABLE `pollution` (
+  `id` int(10) unsigned NOT NULL AUTO_INCREMENT,
+  `source` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'online',
+  `country` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'China',
+  `province` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Guangdong',
+  `city` varchar(255) COLLATE utf8_unicode_ci NOT NULL DEFAULT 'Dongguan',
+  `pm25` decimal(9,2) DEFAULT NULL,
+  `pm10` decimal(9,2) DEFAULT NULL,
+  `o3` decimal(9,2) DEFAULT NULL,
+  `no2` decimal(9,2) DEFAULT NULL,
+  `so2` decimal(9,2) DEFAULT NULL,
+  `co2` decimal(9,2) DEFAULT NULL,
+  `temperature` decimal(9,2) DEFAULT NULL,
+  `dew` decimal(9,2) DEFAULT NULL,
+  `pressure` decimal(9,2) DEFAULT NULL,
+  `humidity` decimal(9,2) DEFAULT NULL,
+  `wind` decimal(9,2) DEFAULT NULL,
+  `created_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  `deleted_at` timestamp NULL DEFAULT NULL,
+  `updated_at` timestamp NOT NULL DEFAULT '0000-00-00 00:00:00',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=144 DEFAULT CHARSET=utf8 COLLATE=utf8_unicode_ci;

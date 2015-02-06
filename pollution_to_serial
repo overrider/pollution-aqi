@@ -1,0 +1,58 @@
+#!/usr/bin/perl
+
+# This program opens a serial connection to an Arduino
+# which in turn is connected to an LED Light strip
+# In normal mode it fetches the current AQI value from 
+# a website and sends it to the Arduino. In developer mode
+# it reads in an integer via STDIN
+
+use strict;
+use warnings;
+
+use WWW::Mechanize;
+use HTML::TableExtract;
+use HTML::TreeBuilder;
+use Data::Dumper;
+use Device::SerialPort;
+use Time::HiRes qw(usleep nanosleep);
+use Time::Piece;
+
+my $debug = 0;
+my $devel = 0;
+
+if($debug){
+	print "Debug mode on\n";
+}
+
+if($devel){
+	print "Developer mode on\n";
+}
+
+my $port = Device::SerialPort->new("/dev/ttyACM0");
+$port->baudrate(9600);
+$port->databits(8);
+$port->parity("none");
+$port->stopbits(1);
+
+while(1){
+	my $pollution_index = -1;
+	if($devel){
+		$pollution_index = <STDIN>;
+		chomp($pollution_index);
+	} else {
+		my $m   = WWW::Mechanize->new();
+		my $url = 'http://aqicn.org/city/dongguan/';
+		$m->get($url);
+		my $content = $m->content();
+		my $tree = HTML::TreeBuilder->new_from_content($content);
+		if (my $div = $tree->look_down(_tag => "div", class => "aqivalue")) {
+			$pollution_index = $div->as_text;
+		} else {
+			print "Could not parse Pollution index\n";
+		}
+		sleep(60);
+	}
+	$port->write($pollution_index . "\n");
+	print "Refreshing...Pollution Index is $pollution_index\n";
+}
+$port->close();

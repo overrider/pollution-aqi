@@ -1,0 +1,4 @@
+# Run on a Raspberry PI which has a LPD8806 based 60 LED
+# RGB addressable Light Strip attached to it. 
+# Basically it gets the AQI from aqicn.org and displays it
+# on the LED strip in different colors. 
