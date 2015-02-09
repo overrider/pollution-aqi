@@ -21,7 +21,6 @@ my $dsn         = "DBI:$driver:database = $database";
 my $userid      = "root";
 my $password    = "intruder99z";
 
-
 my $pm25        = 0;
 my $pm10        = 0;
 my $o3          = 0;
