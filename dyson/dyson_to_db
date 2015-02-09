@@ -54,7 +54,7 @@ while(1){
 	my $req = HTTP::Request->new(POST => $server_endpoint);
 	$req->header('content-type' => 'application/json');
  
-	my $post_data = "{ 'pm25': '$pm25', 'pm10': '$pm10' }";
+	my $post_data = "{'source': 'dyson-home', 'pm25': '$pm25', 'pm10': '$pm10' }";
 	$req->content($post_data);
  
 	my $resp = $ua->request($req);
