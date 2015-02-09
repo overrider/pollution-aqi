@@ -12,7 +12,6 @@ use DateTime;
 use LWP::UserAgent;
 
 my $server_endpoint = "";
-
 my $ua = LWP::UserAgent->new;
 
 my $dt         = DateTime->now;
@@ -22,7 +21,7 @@ my $driver     = "mysql";
 my $database   = "lv_pollution";
 my $dsn        = "DBI:$driver:database   = $database";
 my $userid     = "root";
-my $password   = "intruder99z";
+my $password   = "";
 my $host       = "";
 
 my $pm25        = 0;

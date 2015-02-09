@@ -1,40 +1,32 @@
 #!/usr/bin/perl
 
-# This script gets all available indexes for a city via aqicn.org
-# and enters it into a database for later processing.
-# I run it via a cronjob every 15 minutes
-
 use strict;
 use warnings;
 
-use DBI;
 use WWW::Mechanize;
+use HTML::TableExtract;
 use HTML::TreeBuilder;
-use DateTime;
 
-my $dt          = DateTime->now;
-my $created_at  = "$dt->ymd $dt->hms";
+my $source_url 		= "http://aqicn.org/city/dongguan/";
+my $server_endpoint = "http://YOUR_DOMAIN/POST";
 
-my $driver      = "mysql";
-my $database    = "lv_pollution";
-my $dsn         = "DBI:$driver:database = $database";
-my $userid      = "root";
-my $password    = "";
+my $api_key 	= '123123';
+my $source 		= 'aqicn';
+
+my $debug       = 0;
+my $devel       = 0;
 
 my $pm25        = 0;
 my $pm10        = 0;
 my $o3          = 0;
 my $no2         = 0;
-my $co2         = 0;
+my $co          = 0;
 my $so2         = 0;
 my $temperature = 0;
 my $dew         = 0;
 my $pressure    = 0;
 my $humidity    = 0;
 my $wind        = 0;
-
-my $debug       = 0;
-my $devel       = 0;
 
 if($debug){
 	print "Debug mode on\n";
@@ -44,11 +36,10 @@ if($devel){
 	print "Developer mode on\n";
 }
 
-my $m          = WWW::Mechanize->new();
-my $url        = 'http://aqicn.org/city/dongguan/';
-$m->get($url);
-my $content    = $m->content();
-my $tree       = HTML::TreeBuilder->new_from_content($content);
+my $m   = WWW::Mechanize->new();
+$m->get($source_url);
+my $content = $m->content();
+my $tree = HTML::TreeBuilder->new_from_content($content);
 
 if (my $div = $tree->look_down(_tag => "td", id => "cur_pm25")) {
 	$pm25 = $div->as_text;
@@ -71,7 +62,7 @@ if (my $div = $tree->look_down(_tag => "td", id => "cur_so2")) {
 }
 
 if (my $div = $tree->look_down(_tag => "td", id => "cur_co")) {
-	$co2 = $div->as_text;
+	$co = $div->as_text;
 }
 
 if (my $div = $tree->look_down(_tag => "td", id => "cur_t")) {
@@ -94,9 +85,34 @@ if (my $div = $tree->look_down(_tag => "td", id => "cur_w")) {
 	$wind = $div->as_text;
 }
 
-my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
-my $sth = $dbh->prepare("INSERT INTO pollution (pm25, pm10, o3, no2, so2, co2, temperature, dew, pressure, humidity, wind, created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)");
-$sth->execute($pm25, $pm10, $o3, $no2, $so2, $co2, $temperature, $dew, $pressure, $humidity, $wind, $created_at) or die $DBI::errstr;
-$sth->finish();
+my $ua       = LWP::UserAgent->new();
+my $response = $ua->post( $server_endpoint, { 
+	'source'      => $source,
+	'api_key'     => $api_key,
+	'pm25'        => $pm25,
+	'pm10'        => $pm10,
+	'o3'          => $o3,
+	'no2'         => $no2,
+	'so2'         => $so2,
+	'co'          => $co,
+	'temperature' => $temperature,
+	'dew'         => $dew,
+	'pressure'    => $pressure,
+	'humidity'    => $humidity,
+	'wind'        => $wind
+});
+$content  = $response->decoded_content();
 
-return 0;
+if ($response->is_success) {
+	my $message = $response->decoded_content;
+	if($debug || $devel){
+		print "Received reply: $message\n";
+	}
+	exit 0;
+} else {
+	if($debug || $devel){
+		print "HTTP POST error code: ", $response->code, "\n";
+		print "HTTP POST error message: ", $response->message, "\n";
+	}
+	exit 1;
+}
