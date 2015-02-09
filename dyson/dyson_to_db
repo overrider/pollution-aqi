@@ -1,0 +1,56 @@
+#!/usr/bin/perl
+
+# This program opens a serial connection to a Dyson DC1100 Pro
+# and stores the received pm25 and >pm25 values to a database;
+
+use strict;
+use warnings;
+
+use Data::Dumper;
+use Device::SerialPort;
+use DBI;
+use DateTime;
+
+my $dt         = DateTime->now;
+my $created_at = "$dt->ymd $dt->hms";
+
+my $driver     = "mysql";
+my $database   = "lv_pollution";
+my $dsn        = "DBI:$driver:database   = $database";
+my $userid     = "root";
+my $password   = "intruder99z";
+my $host       = "";
+
+my $pm25        = 0;
+my $pm10        = 0;
+my $temperature = 0;
+
+my $debug       = 0;
+my $devel       = 0;
+
+if($debug){
+	print "Debug mode on\n";
+}
+
+if($devel){
+	print "Developer mode on\n";
+}
+
+my $port = Device::SerialPort->new("/dev/ttyUSB0");
+$port->baudrate(9600);
+$port->databits(8);
+$port->parity("none");
+$port->stopbits(1);
+
+while(1){
+	my $input = <STDIN>; # $port->input;
+	chomp($input);
+	($pm25, $pm10) = split(/,/,$input);
+
+	my $dbh = DBI->connect($dsn, $userid, $password ) or die $DBI::errstr;
+	my $sth = $dbh->prepare("INSERT INTO pollution (pm25, pm10, temperature, created_at) VALUES (?,?,?,?)");
+	$sth->execute($pm25, $pm10, $temperature, $created_at) or die $DBI::errstr;
+	$sth->finish();
+}
+
+$port->close();
