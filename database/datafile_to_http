@@ -1,0 +1,60 @@
+#!/usr/bin/perl
+
+# This script takes a csv datafile and posts it, all at once, to a URL. 
+# The script at the URL is responsible to parse the fields and store it in
+# a database.
+
+use strict;
+use warnings;
+
+use Time::Piece;
+use LWP::UserAgent;
+use JSON;
+
+my $server_endpoint = "http://pollution.ironwhale.com/upload-batch";
+
+my $api_key		= 'testtest';
+
+my $debug       = 1;
+if($debug){
+	print "Debug mode on\n";
+}
+
+local $/;
+my $datafile	= '/dyson.txt';
+if($debug){
+	print "Reading $datafile\n";
+}
+open(FILEHANDLE, '<', $datafile) or die "Could not open file '$datafile' $!\n";
+my $csv_data = <FILEHANDLE>;
+close(FILEHANDLE);
+
+if($debug){
+	print "Posting data\n";
+}
+my $ua       = LWP::UserAgent->new();
+my $response = $ua->post( $server_endpoint, { 
+	'api_key'	=> $api_key,
+	'csv_data'     => $csv_data
+});
+
+if ($response->is_success) {
+	my $message = $response->decoded_content;
+	my $message_j = decode_json($message);
+
+	if($message_j->{'status'} eq "OK"){
+		# Unlink Datafile or move to *.bak?
+	} else {
+		# Leave Datafile...?
+	}
+	if($debug){
+		print "Received reply: $message\n";
+	}
+	exit 0;
+} else {
+	if($debug){
+		print "HTTP POST error code: ", $response->code, "\n";
+		print "HTTP POST error message: ", $response->message, "\n";
+	}
+	exit 1;
+}

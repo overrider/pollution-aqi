@@ -1,0 +1,103 @@
+#!/usr/bin/perl
+
+# This program opens a serial connection to a Dyson DC1100 Pro AIQ sensor
+# and sends the received pm25 and pm10 via HTTP POST to be stored in a database or save to file
+# Additionally it will read the temperature from a connected DS18B20 temperature sensor
+
+use strict;
+use warnings;
+
+use Device::SerialPort;
+use LWP::UserAgent;
+use Time::Piece;
+
+my $device			= "/dev/ttyUSB0";
+my $server_endpoint = "http://pollution.ironwhale.com/record";
+my $logfile			= "/dyson.txt";
+
+my $source 		= 'dyson-home';
+my $api_key 	= '123123';
+my $country		= 'China';
+my $province	= 'Guangdong';
+my $city		= 'Dongguan';
+
+my $debug       = 1;
+
+my $store_to_file = 1;
+my $store_to_http = 0;
+
+my $pm25        = 0;
+my $pm10        = 0;
+my $temperature = 0;
+
+if($debug){
+	print "Debug mode on\n";
+}
+
+my $port = Device::SerialPort->new($device) or die("Could not open Serialport!\n");
+$port->baudrate(9600);
+$port->databits(8);
+$port->parity("none");
+$port->stopbits(1);
+$port->are_match("\n","\r");
+$port->write_settings();
+
+while(1){
+	my $input = $port->lookfor();
+
+	my $created_ts = time();
+	my $created_at = localtime->strftime('%Y-%m-%d %H:%M:%S');
+
+	if($input){
+		chomp($input);
+		my ($pm25, $pm10) = split(/,/,$input);
+
+		if($debug){
+			print "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm25,$pm10,$temperature\n";
+			if($pm10 lt 5000){
+				#print "Bad Reading $pm10 ^\n";
+			}
+		}
+
+
+		if($store_to_file){
+			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
+			print $fh "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm25,$pm10,$temperature\n";
+			if($pm10 lt 5000){
+				#print $fh "Bad Reading ^\n";
+			}
+			close($fh);
+		}
+
+		if($store_to_http){
+			my $ua       = LWP::UserAgent->new();
+			my $response = $ua->post( $server_endpoint, { 
+				'created_ts'	=> $created_ts,
+				'created_at'	=> $created_at,
+				'source'      => $source,
+				'api_key'     => $api_key,
+				'country'		=> $country,
+				'province'		=> $province,
+				'city'			=> $city,
+				'pm25'        => $pm25,
+				'pm10'        => $pm10,
+				'temperature' => $temperature
+			});
+			my $content  = $response->decoded_content();
+
+			if ($response->is_success) {
+				my $message = $response->decoded_content;
+				if($debug){
+					print "Received reply: $message\n";
+				}
+			} else {
+				if($debug){
+					print "HTTP POST error code: ", $response->code, "\n";
+					print "HTTP POST error message: ", $response->message, "\n";
+				}
+			}
+		}
+	}
+	$port->lookclear; 
+	sleep(1);
+}
