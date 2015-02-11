@@ -20,6 +20,7 @@ if(!-e "/etc/AQI_API_KEY"){
 	die("Could not read /etc/AQI_API_KEY");
 }
 my $api_key 	= `cat /etc/AQI_API_KEY`;
+chomp($api_key);
 
 my $country		= 'China';
 my $province	= 'Guangdong';
