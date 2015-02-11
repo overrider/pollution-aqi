@@ -6,6 +6,7 @@ use warnings;
 use WWW::Mechanize;
 use HTML::TableExtract;
 use HTML::TreeBuilder;
+use Time::Piece;
 
 my $source_url 		= "http://aqicn.org/city/dongguan/";
 my $server_endpoint = "http://YOUR_DOMAIN/POST";
@@ -14,7 +15,6 @@ my $api_key 	= '123123';
 my $source 		= 'aqicn';
 
 my $debug       = 0;
-my $devel       = 0;
 
 my $pm25        = 0;
 my $pm10        = 0;
@@ -28,12 +28,11 @@ my $pressure    = 0;
 my $humidity    = 0;
 my $wind        = 0;
 
+my $created_ts = time();
+my $created_at = localtime->strftime('%Y-%m-%d %H:%M:%S');
+
 if($debug){
 	print "Debug mode on\n";
-}
-
-if($devel){
-	print "Developer mode on\n";
 }
 
 my $m   = WWW::Mechanize->new();
@@ -87,6 +86,8 @@ if (my $div = $tree->look_down(_tag => "td", id => "cur_w")) {
 
 my $ua       = LWP::UserAgent->new();
 my $response = $ua->post( $server_endpoint, { 
+	'created_at'  => $created_at,
+	'created_ts'  => $created_ts,
 	'source'      => $source,
 	'api_key'     => $api_key,
 	'pm25'        => $pm25,
@@ -105,12 +106,12 @@ $content  = $response->decoded_content();
 
 if ($response->is_success) {
 	my $message = $response->decoded_content;
-	if($debug || $devel){
+	if($debug){
 		print "Received reply: $message\n";
 	}
 	exit 0;
 } else {
-	if($debug || $devel){
+	if($debug){
 		print "HTTP POST error code: ", $response->code, "\n";
 		print "HTTP POST error message: ", $response->message, "\n";
 	}
