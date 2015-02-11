@@ -59,7 +59,6 @@ while(1){
 			}
 		}
 
-
 		if($store_to_file){
 			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
 			print $fh "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm25,$pm10,$temperature\n";

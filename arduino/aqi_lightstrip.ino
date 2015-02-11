@@ -2,7 +2,7 @@
 # addressable LED RGB Light Strip attached to it. The Arduino
 # receives an INT and displays that value onto the LED Strip
 # In my case the LED Strip has 60 LEDs attached to it, and i 
-# allow the Pollution index to be from 0 to 200;
+# allow the Pollution index to be from 0 to 239;
 
 #include "LPD8806.h"
 #include "SPI.h"
@@ -33,7 +33,6 @@ void setup() {
 	*/
 }
 
-
 void loop() { 
 	while(Serial.available()>0){
 		int data = Serial.parseInt();
@@ -41,6 +40,7 @@ void loop() {
 		if(data > 239){
 			data = 239;
 		}
+
 		if(data < 0){
 			data = 0;
 		}
