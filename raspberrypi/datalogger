@@ -1,8 +1,7 @@
 #!/usr/bin/perl
 
-# This program opens a serial connection to a Dyson DC1100 Pro AIQ sensor
-# and sends the received pm25 and pm10 via HTTP POST to be stored in a database or save to file
-# Additionally it will read the temperature from a connected DS18B20 temperature sensor
+# This program reads data from a Dyson DC1100 Pro AIQ sensor as well as a connected DS18B20 temperature probe
+# and sends the collected data to a database or file for further processing
 
 use strict;
 use warnings;
@@ -10,13 +9,18 @@ use warnings;
 use Device::SerialPort;
 use LWP::UserAgent;
 use Time::Piece;
+use JSON;
 
 my $device			= "/dev/ttyUSB0";
-my $server_endpoint = "http://pollution.ironwhale.com/record";
+my $server_endpoint = "http://pollution.ironwhale.com";
 my $logfile			= "/dyson.txt";
 
 my $source 		= 'dyson-home';
-my $api_key 	= '123123';
+if(!-e "/etc/AQI_API_KEY"){
+	die("Could not read /etc/AQI_API_KEY");
+}
+my $api_key 	= `cat /etc/AQI_API_KEY`;
+
 my $country		= 'China';
 my $province	= 'Guangdong';
 my $city		= 'Dongguan';
@@ -42,10 +46,38 @@ $port->stopbits(1);
 $port->are_match("\n","\r");
 $port->write_settings();
 
+my $batch_001 = time();
+my $batch_005 = time();
+my $batch_015 = time();
+my $batch_030 = time();
+my $batch_060 = time();
+my $batch_120 = time();
+my $batch_300 = time();
+
 while(1){
 	my $input = $port->lookfor();
+	my $current_time = time();
 
-	my $created_ts = time();
+	if($current_time - $batch_001 > 60){
+		$batch_001 = time();
+	} elsif($current_time - $batch_005 > 300){
+		$batch_005 = time();
+	} elsif($current_time - $batch_015 > 900){
+		$batch_015 = time();
+	} elsif($current_time - $batch_030 > 1800){
+		if(&send_logfile_to_http() == 1){
+			&truncate_logfile();
+		}
+		$batch_030 = time();
+	} elsif($current_time - $batch_060 > 3600){
+		$batch_060 = time();
+	} elsif($current_time - $batch_120 > 7200){
+		$batch_120 = time();
+	} elsif($current_time - $batch_300 > 18000){
+		$batch_300 = time();
+	}
+
+	my $created_ts = $current_time;
 	my $created_at = localtime->strftime('%Y-%m-%d %H:%M:%S');
 
 	if($input){
@@ -54,23 +86,17 @@ while(1){
 
 		if($debug){
 			print "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm25,$pm10,$temperature\n";
-			if($pm10 lt 5000){
-				#print "Bad Reading $pm10 ^\n";
-			}
 		}
 
 		if($store_to_file){
 			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
 			print $fh "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm25,$pm10,$temperature\n";
-			if($pm10 lt 5000){
-				#print $fh "Bad Reading ^\n";
-			}
 			close($fh);
 		}
 
 		if($store_to_http){
 			my $ua       = LWP::UserAgent->new();
-			my $response = $ua->post( $server_endpoint, { 
+			my $response = $ua->post( $server_endpoint.'/record', { 
 				'created_ts'	=> $created_ts,
 				'created_at'	=> $created_at,
 				'source'      => $source,
@@ -99,4 +125,54 @@ while(1){
 	}
 	$port->lookclear; 
 	sleep(1);
+}
+
+sub read_ds18b20(){
+}
+
+sub send_logfile_to_http(){
+	local $/;
+
+	if($debug){
+		print "Reading data...\n";
+	}
+	open(FILEHANDLE, '<', $logfile) or die "Could not open file '$logfile' $!\n";
+	my $csv_data = <FILEHANDLE>;
+	close(FILEHANDLE);
+
+	if($debug){
+		print "Posting data...\n";
+	}
+	my $ua       = LWP::UserAgent->new();
+	my $response = $ua->post( $server_endpoint . "/upload-batch", { 
+		'api_key'	=> $api_key,
+		'csv_data'  => $csv_data
+	});
+
+	if ($response->is_success) {
+		my $message = $response->decoded_content;
+		my $message_j = decode_json($message);
+
+		if($message_j->{'status'} eq "OK"){
+			return 1;
+		} else {
+			return 0;
+		}
+	} else {
+		if($debug){
+			print "HTTP POST error code: ", $response->code, "\n";
+			print "HTTP POST error message: ", $response->message, "\n";
+		}
+		return 0;
+	}
+	return 0;
+}
+
+sub send_logfile_to_database(){
+}
+
+sub truncate_logfile(){
+	open(FILEHANDLE, '>', $logfile) or die "Could not truncate file '$logfile' $!\n";
+	close(FILEHANDLE);
+	return 0;
 }

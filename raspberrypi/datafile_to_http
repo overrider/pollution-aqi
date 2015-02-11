@@ -43,9 +43,8 @@ if ($response->is_success) {
 	my $message_j = decode_json($message);
 
 	if($message_j->{'status'} eq "OK"){
-		# Unlink Datafile or move to *.bak?
-	} else {
-		# Leave Datafile...?
+		open(FILEHANDLE, '>', $datafile) or die "Could not truncate file '$datafile' $!\n";
+		close(FILEHANDLE);
 	}
 	if($debug){
 		print "Received reply: $message\n";
