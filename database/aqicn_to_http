@@ -11,9 +11,13 @@ use Time::Piece;
 my $source_url 		= "http://aqicn.org/city/dongguan/";
 my $server_endpoint = "http://YOUR_DOMAIN/POST";
 
-my $api_key 	= '123123';
-my $source 		= 'aqicn';
+if(!-e "/etc/AQI_API_KEY"){
+	die("Could not read /etc/AQI_API_KEY");
+}
+my $api_key 	= `cat /etc/AQI_API_KEY`;
+chomp($api_key);
 
+my $source 		= 'aqicn';
 my $debug       = 0;
 
 my $pm25        = 0;
