@@ -103,20 +103,17 @@ while(1){
 			$old_large = $large;
 		}
 
-		my $percent_large = (($large - $old_large) / $old_large) * 100;
-		$percent_large = abs($percent_large);
-		$percent_large = sprintf("%.2f",$percent_large);
+		my $percent_small = &diff_in_percent($old_small,$small);
+		my $percent_large = &diff_in_percent($old_large,$large);
 
-		my $percent_small = (($small - $old_small) / $old_small) * 100;
-		$percent_small = abs($percent_small);
-		$percent_small = sprintf("%.2f",$percent_small);
-
-		if($percent_small > 100 || $percent_large > 100){
-			$remark = "Suspicious reading";
+		if($old_large > 1000 || $old_small > 100){
+			if($percent_small > 100 || $percent_large > 100){
+				$remark = "Suspicious reading";
+			}
 		}
 
 		if($debug){
-			print "$timestamp,$source,$api_key,$small,$large,$remark\n";
+			print "$timestamp,$source,$api_key,$small,$large,$remark,$percent_small,$percent_large\n";
 		}
 
 		if($store_to_file){
@@ -199,4 +196,13 @@ sub truncate_logfile(){
 	open(FILEHANDLE, '>', $logfile) or die "Could not truncate file '$logfile' $!\n";
 	close(FILEHANDLE);
 	return 0;
+}
+
+sub diff_in_percent($$){
+	my $old = shift;
+	my $new = shift;
+
+	my $diff = (($new - $old) / $old) * 100;
+	$diff = abs($diff);
+	return int($diff);
 }
