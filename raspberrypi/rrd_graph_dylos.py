@@ -14,8 +14,6 @@
 #	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-
-
 import rrdtool
 import os
 
@@ -24,10 +22,7 @@ directory = "/controlpanel/public/img/"
 if os.path.isdir(directory) == False:
 	exit(1)
 
-if os.path.exists("/var/rrd/pollution05.rrd") == False:
-	exit(1)
-
-if os.path.exists("/var/rrd/pollution25.rrd") == False:
+if os.path.exists("/var/rrd/dylos.rrd") == False:
 	exit(1)
 
 for sched in ['hourly','daily','weekly','monthly']:
@@ -46,8 +41,8 @@ for sched in ['hourly','daily','weekly','monthly']:
 		"-w 550px",
 		"-h 200px",
 		"-t Particles <=0.5 micron," + sched,
-		"DEF:m1_num=/var/rrd/pollution05.rrd:pollution:AVERAGE",
-		"LINE2:m1_num#2AABD2:pollution\\r")
+		"DEF:m1_num=/var/rrd/dylos.rrd:small:AVERAGE",
+		"LINE2:m1_num#2AABD2:small\\r")
 
 	ret = rrdtool.graph( "/controlpanel/public/img/metrics-25-%s.png" %(sched), "--start", "-1%s" %(period), "--vertical-label=Particles / 100",
 	        '--full-size-mode',
@@ -55,5 +50,5 @@ for sched in ['hourly','daily','weekly','monthly']:
 		"-w 550px",
 		"-h 200px",
 		"-t Particles >=2.5 micron," + sched,
-		"DEF:m1_num=/var/rrd/pollution25.rrd:pollution:AVERAGE",
-		"LINE2:m1_num#2AABD2:pollution\\r")
+		"DEF:m1_num=/var/rrd/dylos.rrd:large:AVERAGE",
+		"LINE2:m1_num#2AABD2:large\\r")

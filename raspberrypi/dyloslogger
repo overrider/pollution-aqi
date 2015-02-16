@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
-# This program reads data from a Dyson DC1100 Pro AIQ sensor as well as a connected DS18B20 temperature probe
-# and sends the collected data to a database or file for further processing
+# This program reads data from a Dylos DC1100 Pro AIQ sensor 
+# and attempts to send recorded data to an HTTP endpoint at regular intervals
 
 use strict;
 use warnings;
@@ -13,27 +13,22 @@ use JSON;
 
 my $device			= "/dev/ttyUSB0";
 my $server_endpoint = "http://pollution.ironwhale.com";
-my $logfile			= "/dyson.txt";
+my $logfile			= "/dylos.txt";
 
-my $source 		= 'dyson-home';
+my $source 		= 'dc110pro-home';
 if(!-e "/etc/AQI_API_KEY"){
 	die("Could not read /etc/AQI_API_KEY");
 }
 my $api_key 	= `cat /etc/AQI_API_KEY`;
 chomp($api_key);
 
-my $country		= 'China';
-my $province	= 'Guangdong';
-my $city		= 'Dongguan';
-
-my $debug       = 1;
+my $debug = 0;
+if(-e "/DEBUG"){
+	$debug		= 1;
+}
 
 my $store_to_file = 1;
 my $store_to_http = 0;
-
-my $pm05        = 0;
-my $pm25        = 0;
-my $temperature = 0;
 
 if($debug){
 	print "Debug mode on\n";
@@ -55,9 +50,13 @@ my $batch_060 = time();
 my $batch_120 = time();
 my $batch_300 = time();
 
+my $old_small = -1;
+my $old_large = -1;
+
 while(1){
 	my $input = $port->lookfor();
 	my $current_time = time();
+	my $remark = "";
 
 	if($current_time - $batch_001 > 60){
 		$batch_001 = time();
@@ -78,36 +77,63 @@ while(1){
 		$batch_300 = time();
 	}
 
-	my $created_ts = $current_time;
-	my $created_at = localtime->strftime('%Y-%m-%d %H:%M:%S');
+	my $timestamp = $current_time;
 
 	if($input){
 		chomp($input);
-		my ($pm05, $pm25) = split(/,/,$input);
+		my ($small, $large) = split(/,/,$input);
+
+		if(!$small =~ /^[0-9]+$/){
+			print "Out of Bounds\n";
+			$remark = "Bad reading";
+			$small = 0;
+		}
+
+		if(!$large =~ /^[0-9]+$/){
+			print "Out of Bounds\n";
+			$remark = "Bad reading";
+			$large = 0;
+		}
+
+		if($old_small == -1){
+			$old_small = $small;
+		}
+
+		if($old_large == -1){
+			$old_large = $large;
+		}
+
+		my $percent_large = (($large - $old_large) / $old_large) * 100;
+		$percent_large = abs($percent_large);
+		$percent_large = sprintf("%.2f",$percent_large);
+
+		my $percent_small = (($small - $old_small) / $old_small) * 100;
+		$percent_small = abs($percent_small);
+		$percent_small = sprintf("%.2f",$percent_small);
+
+		if($percent_small > 100 || $percent_large > 100){
+			$remark = "Suspicious reading";
+		}
 
 		if($debug){
-			print "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm05,$pm25,$temperature\n";
+			print "$timestamp,$source,$api_key,$small,$large,$remark\n";
 		}
 
 		if($store_to_file){
 			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
-			print $fh "$created_at,$created_ts,$source,$api_key,$country,$province,$city,$pm05,$pm25,$temperature\n";
+			print $fh "$timestamp,$source,$api_key,$small,$large,$remark\n";
 			close($fh);
 		}
 
 		if($store_to_http){
 			my $ua       = LWP::UserAgent->new();
-			my $response = $ua->post( $server_endpoint.'/record', { 
-				'created_ts'	=> $created_ts,
-				'created_at'	=> $created_at,
+			my $response = $ua->post( $server_endpoint.'/upload-dylos', { 
+				'timestamp'	=> $timestamp,
 				'source'      => $source,
 				'api_key'     => $api_key,
-				'country'		=> $country,
-				'province'		=> $province,
-				'city'			=> $city,
-				'pm05'        => $pm05,
-				'pm25'        => $pm25,
-				'temperature' => $temperature
+				'small'        => $small,
+				'large'        => $large,
+				'remark'	=> $remark
 			});
 			my $content  = $response->decoded_content();
 
@@ -128,9 +154,6 @@ while(1){
 	sleep(1);
 }
 
-sub read_ds18b20(){
-}
-
 sub send_logfile_to_http(){
 	local $/;
 
@@ -145,7 +168,7 @@ sub send_logfile_to_http(){
 		print "Posting data...\n";
 	}
 	my $ua       = LWP::UserAgent->new();
-	my $response = $ua->post( $server_endpoint . "/upload-batch", { 
+	my $response = $ua->post( $server_endpoint . "/upload-dylos-batch", { 
 		'api_key'	=> $api_key,
 		'csv_data'  => $csv_data
 	});

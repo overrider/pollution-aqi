@@ -14,35 +14,43 @@
 #	(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 #	SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import sys
-import shutil
-import os
 import time
-import rrdtool
+import os
+import sys
+import io
+from rrdtool import update as rrd_update
+import subprocess
+from subprocess import call
 
-shutil.rmtree("/var/rrd",True)
-os.mkdir("/var/rrd")
+# 2015-02-15 15:08:27,1423984107,dyson-home,55265eb971242335613c81da8bdbfd54,China,Guangdong,Dongguan,14075,230,0
 
-ret = rrdtool.create(
-    "/var/rrd/pollution05.rrd", "--step", "60", "--start", '0',
-    'DS:pollution:GAUGE:300:0:50000',
-    'RRA:AVERAGE:0.5:1:1440',
-    'RRA:AVERAGE:0.5:5:2016',
-    'RRA:AVERAGE:0.5:10:4320',
-    'RRA:AVERAGE:0.5:60:8760',
-    'RRA:MIN:0.5:60:8760',
-    'RRA:MAX:0.5:60:8760',
-    'RRA:LAST:0.5:1:1440'
-)
+with open('/dylos.txt','r') as fh:
+    for line in fh:
+        pass
+    last = line
+    last = last.rstrip()
+    data = last.split(",")
+    fh.close()
 
-ret = rrdtool.create(
-    "/var/rrd/pollution25.rrd", "--step", "60", "--start", '0',
-    'DS:pollution:GAUGE:300:0:50000',
-    'RRA:AVERAGE:0.5:1:1440',
-    'RRA:AVERAGE:0.5:5:2016',
-    'RRA:AVERAGE:0.5:10:4320',
-    'RRA:AVERAGE:0.5:60:8760',
-    'RRA:MIN:0.5:60:8760',
-    'RRA:MAX:0.5:60:8760',
-    'RRA:LAST:0.5:1:1440'
-)
+epoch= int(data[0])
+small = int(data[3])
+large = int(data[4])
+
+if not os.path.exists("/var/rrd/dylos.rrd"):
+    subprocess.call(["/usr/local/bin/rrd_create.py"])
+
+if not os.path.exists("/var/rrd/dylos.rrd"):
+    sys.exit(1)
+
+def is_number(s):
+    try:
+        float(s)
+        return s
+    except ValueError:
+        return 0
+
+small = is_number(small)
+large = is_number(large)
+
+ret = rrd_update('/var/rrd/dylos.rrd', str(epoch)+':%s:%s' %(small,large));
+sys.exit(0)
