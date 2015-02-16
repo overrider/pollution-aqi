@@ -112,6 +112,9 @@ while(1){
 			}
 		}
 
+		$old_large = $large;
+		$old_small = $small;
+
 		if($debug){
 			print "$timestamp,$source,$api_key,$small,$large,$remark,$percent_small,$percent_large\n";
 		}
