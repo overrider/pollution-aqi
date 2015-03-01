@@ -15,6 +15,7 @@ use JSON;
 my $device			= "/dev/ttyUSB0";
 my $server_endpoint = "http://pollution.ironwhale.com";
 my $logfile			= "/dylos.txt";
+my $rrdlogfile		= "/dylos_rrd.txt";
 
 my $source 		= 'dc110pro-home';
 if(!-e "/etc/AQI_API_KEY"){
@@ -148,6 +149,10 @@ while(1){
 
 		if($store_to_file){
 			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
+			print $fh "$timestamp,$source,$api_key,$small,$large,$remark\n";
+			close($fh);
+
+			open($fh, '>', $rrdlogfile) or die "Could not open file '$rrdlogfile' $!\n";
 			print $fh "$timestamp,$source,$api_key,$small,$large,$remark\n";
 			close($fh);
 		}

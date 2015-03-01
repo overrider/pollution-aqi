@@ -33,7 +33,7 @@ def is_number(s):
     except ValueError:
         return 0
 
-with open('/dylos.txt','r') as fh:
+with open('/dylos_rrd.txt','r') as fh:
     for line in fh:
         line = line.rstrip()
 
@@ -44,6 +44,8 @@ with open('/dylos.txt','r') as fh:
     large = int(data[4])
     small = is_number(small)
     large = is_number(large)
+
+    epoch = int(time.time()) # overwrite so it 'works' for dylos continous and monitor mode
     ret = rrd_update('/var/rrd/dylos.rrd', str(epoch)+':%s:%s' %(small,large));
 
     fh.close()

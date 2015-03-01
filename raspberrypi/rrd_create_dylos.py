@@ -30,13 +30,15 @@ shutil.rmtree("/var/rrd",True)
 os.mkdir("/var/rrd")
 
 ret = rrdtool.create(
-    '/var/rrd/dylos.rrd', '--step', '3600', '--start', '0',
-    'DS:small:GAUGE:7200:0:5000',
-    'DS:large:GAUGE:7200:0:5000',
-    'RRA:AVERAGE:0.5:1:24',
-    'RRA:AVERAGE:0.5:4:180',
-    'RRA:AVERAGE:0.5:6:2160',
-    'RRA:MIN:0.5:1:168',
-    'RRA:MAX:0.5:1:168',
-    'RRA:AVERAGE:0.5:1:168'
+    '/var/rrd/dylos.rrd', '--step', '60', '--start', '0',
+    'DS:small:GAUGE:180:0:50000',
+    'DS:large:GAUGE:180:0:50000',
+    'RRA:AVERAGE:0.5:1:1440',
+    'RRA:AVERAGE:0.5:60:720',
+    'RRA:MIN:0.5:1:1440',
+    'RRA:MAX:0.5:1:1440',
+    'RRA:LAST:0.5:1:1440',
+    'RRA:MIN:0.5:60:720', 
+    'RRA:MAX:0.5:60:720',
+    'RRA:LAST:0.5:60:720'
 )
