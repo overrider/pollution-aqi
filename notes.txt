@@ -1,0 +1,7 @@
+Mon Feb 16 23:26:22 HKT 2015, Turned AF on (4H, smallest setting), Office, Door open, Windows closed
+Tue Feb 17 00:35:40 HKT 2015, Turned AF on (4H, smallest setting), Office, Door closed, Windows closed
+Wed Feb 18 00:46:49 HKT 2015, Turned AF on (4H, medium setting), Office Door closed, Windows closed
+
+What do the two numbers mean?
+These numbers represent the number of small(fine) and large(coarse) particles detected. They are a running average of the particles counted in the past 10 seconds. The number on the left is the small particle count and the number on the right is the large particle count. The numbers are approximately what a 12 year old would inhale in a single breath. The small particles can include fine dust, bacteria, mold, smoke, etc. (from approximately 1um and up). The large particles can include coarse dust, pollen, dust mite casings, etc. (from approximately 5um and up).
+DC1100 Pro has all the features of the standard DC1100 but with increased lower sensitivity - detecting particles down to 0.5 micron. The large particle size range is calibrated to 2.5 microns and above.

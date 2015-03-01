@@ -34,30 +34,22 @@ if os.path.isdir(directory) == False:
 if os.path.exists("/var/rrd/dylos.rrd") == False:
 	exit(1)
 
-for sched in ['hourly','daily','weekly','monthly']:
-	if   sched == 'hourly':
-	        period = 'h'
-	elif sched == 'weekly':
-		period = 'w'
-	elif sched == 'daily':
-		period = 'd'
-	elif sched == 'monthly':
-		period = 'm'
+ret = rrdtool.graph( "/controlpanel/public/img/metrics-05.png", "--start", "-86400", "--vertical-label=Particles / 100",
+        '--full-size-mode',
+        "--slope-mode",
+        "-w 1050px",
+        "-h 300px",
+        "-l 0",
+        "-t Particles <=0.5 microns",
+        "DEF:m1_num=/var/rrd/dylos.rrd:small:AVERAGE",
+        "LINE2:m1_num#2AABD2:small\\r")
 
-	ret = rrdtool.graph( "/controlpanel/public/img/metrics-05-%s.png" %(sched), "--start", "-1%s" %(period), "--vertical-label=Particles / 100",
-	        '--full-size-mode',
-		"--slope-mode",
-		"-w 550px",
-		"-h 200px",
-		"-t Particles <=0.5 micron," + sched,
-		"DEF:m1_num=/var/rrd/dylos.rrd:small:AVERAGE",
-		"LINE2:m1_num#2AABD2:small\\r")
-
-	ret = rrdtool.graph( "/controlpanel/public/img/metrics-25-%s.png" %(sched), "--start", "-1%s" %(period), "--vertical-label=Particles / 100",
-	        '--full-size-mode',
-		"--slope-mode",
-		"-w 550px",
-		"-h 200px",
-		"-t Particles >=2.5 micron," + sched,
-		"DEF:m1_num=/var/rrd/dylos.rrd:large:AVERAGE",
-		"LINE2:m1_num#2AABD2:large\\r")
+ret = rrdtool.graph( "/controlpanel/public/img/metrics-25.png", "--start", "-86400", "--vertical-label=Particles / 100",
+        '--full-size-mode',
+        "--slope-mode",
+        "-w 1050px",
+        "-h 300px",
+        "-l 0",
+        "-t Particles >=2.5 microns",
+        "DEF:m1_num=/var/rrd/dylos.rrd:large:AVERAGE",
+        "LINE2:m1_num#2AABD2:large\\r")

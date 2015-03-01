@@ -2,6 +2,7 @@
 
 # This program reads data from a Dylos DC1100 Pro AIQ sensor 
 # and attempts to send recorded data to an HTTP endpoint at regular intervals
+# I run this as a daemon using the great supervisord
 
 use strict;
 use warnings;
@@ -29,6 +30,7 @@ if(-e "/DEBUG"){
 
 my $store_to_file = 1;
 my $store_to_http = 0;
+my $update_rrd    = 0;
 
 if($debug){
 	print "Debug mode on\n";
@@ -52,6 +54,11 @@ my $batch_300 = time();
 
 my $old_small = -1;
 my $old_large = -1;
+my $small_avg = -1;
+my $large_avg = -1;
+my $small_total = 0;
+my $large_total = 0;
+my $avg_counter = 0;
 
 while(1){
 	my $input = $port->lookfor();
@@ -67,11 +74,11 @@ while(1){
 	} elsif($current_time - $batch_030 > 1800){
 		$batch_030 = time();
 	} elsif($current_time - $batch_060 > 3600){
+		$batch_060 = time();
+	} elsif($current_time - $batch_120 > 7200){
 		if(&send_logfile_to_http() == 1){
 			&truncate_logfile();
 		}
-		$batch_060 = time();
-	} elsif($current_time - $batch_120 > 7200){
 		$batch_120 = time();
 	} elsif($current_time - $batch_300 > 18000){
 		$batch_300 = time();
@@ -84,15 +91,13 @@ while(1){
 		my ($small, $large) = split(/,/,$input);
 
 		if(!$small =~ /^[0-9]+$/){
-			print "Out of Bounds\n";
-			$remark = "Bad reading";
-			$small = 0;
+			$remark = "Bad small reading ($small) small AVG was $small_avg";
+			$small = $small_avg;
 		}
 
 		if(!$large =~ /^[0-9]+$/){
-			print "Out of Bounds\n";
-			$remark = "Bad reading";
-			$large = 0;
+			$remark = "Bad large reading ($large) large AVG was $large_avg";
+			$large = $large_avg;
 		}
 
 		if($old_small == -1){
@@ -103,12 +108,34 @@ while(1){
 			$old_large = $large;
 		}
 
+		$avg_counter++;
+		$small_total += $small;
+		$large_total += $large;
+		$small_avg = $small_total / $avg_counter;
+		$large_avg = $large_total / $avg_counter;
+
+		$small_avg = int($small_avg);
+		$large_avg = int($large_avg);
+
+		if($avg_counter eq 10){
+			print "AVG reset\n";
+			$avg_counter = 0;
+			$small_total /= 10;
+			$large_total /= 10;
+		}
+
 		my $percent_small = &diff_in_percent($old_small,$small);
 		my $percent_large = &diff_in_percent($old_large,$large);
 
-		if($old_large > 1000 || $old_small > 100){
-			if($percent_small > 100 || $percent_large > 100){
-				$remark = "Suspicious reading";
+		if($old_large > 1000){
+			if($percent_large > 100){
+				$remark = "Suspicious reading: S:$small / L:$large";
+			}
+		}
+
+		if($old_small > 100){
+			if($percent_small > 100){
+				$remark = "Suspicious reading: S:$small / L:$large";
 			}
 		}
 
@@ -116,13 +143,16 @@ while(1){
 		$old_small = $small;
 
 		if($debug){
-			print "$timestamp,$source,$api_key,$small,$large,$remark,$percent_small,$percent_large\n";
+			print "$timestamp,$source,$api_key,$small,$large,$remark,$percent_small,$percent_large,AVG-Counter: $avg_counter, AVG-S: $small_avg, AVG-L: $large_avg\n";
 		}
 
 		if($store_to_file){
 			open(my $fh, '>>', $logfile) or die "Could not open file '$logfile' $!\n";
 			print $fh "$timestamp,$source,$api_key,$small,$large,$remark\n";
 			close($fh);
+		}
+
+		if($update_rrd){
 		}
 
 		if($store_to_http){
@@ -190,9 +220,6 @@ sub send_logfile_to_http(){
 		return 0;
 	}
 	return 0;
-}
-
-sub send_logfile_to_database(){
 }
 
 sub truncate_logfile(){
