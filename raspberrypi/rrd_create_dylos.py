@@ -26,9 +26,6 @@ import subprocess
 from subprocess import call
 import rrdtool
 
-shutil.rmtree("/var/rrd",True)
-os.mkdir("/var/rrd")
-
 ret = rrdtool.create(
     '/var/rrd/dylos.rrd', '--step', '60', '--start', '0',
     'DS:small:GAUGE:180:0:50000',

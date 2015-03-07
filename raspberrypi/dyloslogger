@@ -92,12 +92,12 @@ while(1){
 		my ($small, $large) = split(/,/,$input);
 
 		if(!$small =~ /^[0-9]+$/){
-			$remark = "Bad small reading ($small) small AVG was $small_avg";
+			$remark = "Bad small reading ($small) small AVG was $small_avg Counter $avg_counter";
 			$small = $small_avg;
 		}
 
 		if(!$large =~ /^[0-9]+$/){
-			$remark = "Bad large reading ($large) large AVG was $large_avg";
+			$remark = "Bad large reading ($large) large AVG was $large_avg Counter $avg_counter";
 			$large = $large_avg;
 		}
 
@@ -118,23 +118,23 @@ while(1){
 		$small_avg = int($small_avg);
 		$large_avg = int($large_avg);
 
-		if($avg_counter eq 10){
+		if($avg_counter eq 100){
 			print "AVG reset\n";
 			$avg_counter = 0;
-			$small_total /= 10;
-			$large_total /= 10;
+			$small_total /= 100;
+			$large_total /= 100;
 		}
 
 		my $percent_small = &diff_in_percent($old_small,$small);
 		my $percent_large = &diff_in_percent($old_large,$large);
 
-		if($old_large > 1000){
+		if($large > 1000){
 			if($percent_large > 100){
 				$remark = "Suspicious reading: S:$small / L:$large";
 			}
 		}
 
-		if($old_small > 100){
+		if($small > 100){
 			if($percent_small > 100){
 				$remark = "Suspicious reading: S:$small / L:$large";
 			}
@@ -190,6 +190,7 @@ while(1){
 }
 
 sub send_logfile_to_http(){
+	return 1;
 	local $/;
 
 	if($debug){

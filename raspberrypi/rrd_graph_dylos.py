@@ -65,7 +65,7 @@ ret = rrdtool.graph( "/controlpanel/public/img/metrics-05.png", "--start", "-864
 ret = rrdtool.graph( "/controlpanel/public/img/metrics-25.png", "--start", "-86400", "--vertical-label=Particles / 100",
         '--full-size-mode',
         "--slope-mode",
-        "-w 1050px",
+        "-w 1440px",
         "-h 300px",
         "-l 0",
         "-t Particles >= 2.5 microns",
